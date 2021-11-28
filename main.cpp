@@ -1,49 +1,104 @@
 #include <iostream>
 #include <cassert>
+#include <string>
 #include <vector>
 #include <array>
-#include <cmath>
 
-template <std::size_t Size> std::array<std::vector<unsigned int>, Size> Conway(unsigned int seed = 1) {
+using Series_Type = unsigned int;
+using Series = std::vector<Series_Type>;
+using Conway_Series = std::vector<Series>;
+template <std::size_t Size> using Static_Conway_Series = std::array<Series, Size>;
 
-    return {};
+template <std::size_t Size> Static_Conway_Series<Size> Conway(Series_Type seed = 1) {
+
+    if (Size == 0) return {};
+
+    Static_Conway_Series<Size> s;
+    s[0] = seed;
+
+    for (std::size_t i{1}; i < Size; i++) s[i] = Next(s[i-1]);
+
+    return s;
 
 }
 
-std::vector<unsigned int> Next(std::vector<unsigned int> series) {
+template <std::size_t Size> Static_Conway_Series<Size+1> Add(const Static_Conway_Series<Size> &s) {
 
-    std::vector<unsigned int> n;
-    unsigned int id{series[0]}, count{1};
+    Static_Conway_Series<Size+1> n;
+    for (std::size_t i{0}; i < Size; i++) n[i] = s[i];
+    n[n.size()-1] = Next(s.back());
 
-    for (std::size_t i{1}; i < series.size(); i++) {
+    return n;
 
-        if (series[i] == id) {
+}
 
-            count++;
+template <std::size_t Size> Static_Conway_Series<Size-1> Remove(const Static_Conway_Series<Size> &s) {
 
-        } else {
+    Static_Conway_Series<Size-1> n;
+    for (std::size_t i{0}; i < Size-1; i++) n[i] = s[i];
+
+    return n;
+
+}
+
+Series Next(Series s) {
+
+    Series n;
+    Series_Type id{series[0]}, count{0};
+
+    for (std::size_t i{1}; i < s.size(); i++) {
+
+        count++;
+
+        if (s[i] != id || i == s.size()-1) {
 
             n.push_back(count);
             n.push_back(id);
-            id = series[i];
-            count = 1;
+            id = s[i];
+            count = 0;
 
         }
 
     }
 
-    if (count != 1 || id == 1 || series.size() <= 2) {
-        
-        n.push_back(count);
+    if (count == 0) {
+
+        n.push_back(1);
         n.push_back(id);
-    
+
     }
 
     return n;
 
 }
 
-std::vector<std::vector<unsigned int>> Conway(std::size_t size, unsigned int seed = 1) {
+Series Before(Series s, bool strict = false) {
+
+    if (s.size() <= 1 || !(s.size()%2)) return {};
+    
+    if (strict) {
+
+        for (const auto n : s) {
+
+            if (n > 3) return {};
+
+        }
+
+    }
+
+    Series b;
+
+    for (std::size_t i{0}; i < s.size(); i++) {
+
+        for (std::size_t index{0}; index < s[i]; index++) b[i].push_back(s[i+1]);
+        
+    }
+
+    return b;
+
+}
+
+Conway_Series Conway(std::size_t size, Series_Type seed = 1) {
 
     if (size == 0) {
 
@@ -51,31 +106,14 @@ std::vector<std::vector<unsigned int>> Conway(std::size_t size, unsigned int see
 
     } else if (size == 1) {
 
-        if (seed > 9) {
+        Series v;
+        for (char c : std::to_string(seed)) v.push_back(static_cast<Series_Type>(c-'0'));
 
-            std::vector<unsigned int> first;
-
-            while (seed > 9) {
-
-                const auto l{log10l(seed)+1};
-                first.insert(first.begin(), (seed/static_cast<double>(powl(10, l))-seed/powl(10, l))*powl(10, l));
-                std::cout << first[0] << " ";
-
-                seed -= l*powl(10, l+1);
-
-            }
-
-            return {first};
-
-        } else {
-            
-            return {{{seed}}};
-
-        }
+        return {v};
 
     } else {
 
-        std::vector<std::vector<unsigned int>> v{Conway(size-1, seed)};
+        Conway_Series v{Conway(size-1, seed)};
         v.push_back(Next(v.back()));
 
         return v;
@@ -84,15 +122,31 @@ std::vector<std::vector<unsigned int>> Conway(std::size_t size, unsigned int see
 
 }
 
-void Add(std::vector<std::vector<unsigned int>> &v) { v.push_back(Next(v.back())); }
+void Add(Conway_Series &v) { v.push_back(Next(v.back())); }
+void Remove(Conway_Series &v) { v.pop_back(); }
+
+std::size_t TotalSize(Conway_Series &v) {
+
+    std::size_t s{0};
+    for (const auto& buffer : v) s += buffer.size();
+
+    return s;
+
+}
 
 int main() {
  
-    std::vector<std::vector<unsigned int>> v{Conway(30, 42)};
+    Conway_Series v{Conway(10, 42)};
 
-    for (auto s : v) {
+    for (const auto s : v) {
 
-        for (auto n : s) std::cout << n << ", ";
+        for (std::size_t i{0}; i < s.size(); i++) {
+            
+            std::cout << s[i];
+            if (i != s.size()-1) std::cout << ", ";
+
+        }
+
         std::cout << std::endl;
 
     }
